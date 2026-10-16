@@ -37,6 +37,24 @@ export function LinkExternalDemo() {
   );
 }
 
+export function LinkNewTabAnnouncementDemo() {
+  return (
+    <div className="grid gap-3">
+      <Link href="https://developers.cloudflare.com" target="_blank">
+        Automatic announcement <Link.ExternalIcon />
+      </Link>
+      <Link
+        href="https://developers.cloudflare.com"
+        target="_blank"
+        announceNewTab={false}
+        aria-label="Custom announcement (new tab)"
+      >
+        Custom announcement <Link.ExternalIcon />
+      </Link>
+    </div>
+  );
+}
+
 export function LinkCurrentVariantDemo() {
   return (
     <p className="text-base text-kumo-danger">

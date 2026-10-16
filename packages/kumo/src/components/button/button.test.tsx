@@ -266,9 +266,68 @@ describe("LinkButton", () => {
         Docs
       </LinkButton>,
     );
-    const link = screen.getByRole("link");
+    const link = screen.getByRole("link", {
+      name: /^Docs\s*, opens in a new tab$/,
+    });
     expect(link.getAttribute("target")).toBe("_blank");
     expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+  });
+
+  it("warns when target='_blank' is provided directly", () => {
+    render(
+      <LinkButton href="https://example.com" target="_blank">
+        Docs
+      </LinkButton>,
+    );
+
+    expect(
+      screen.getByRole("link", { name: /^Docs\s*, opens in a new tab$/ }),
+    ).toBeTruthy();
+  });
+
+  it("does not warn when external behavior is overridden to the same tab", () => {
+    render(
+      <LinkButton href="https://example.com" external target="_self">
+        Docs
+      </LinkButton>,
+    );
+
+    expect(screen.getByRole("link", { name: "Docs" })).toBeTruthy();
+  });
+
+  it("appends the warning to an authored accessible name", () => {
+    render(
+      <LinkButton
+        href="https://example.com"
+        target="_blank"
+        aria-label="Open documentation"
+      >
+        Docs
+      </LinkButton>,
+    );
+
+    expect(
+      screen.getByRole("link", {
+        name: "Open documentation, opens in a new tab",
+      }),
+    ).toBeTruthy();
+  });
+
+  it("allows an equivalent custom accessible name to suppress the suffix", () => {
+    render(
+      <LinkButton
+        href="https://example.com"
+        external
+        announceNewTab={false}
+        aria-label="Open documentation (new tab)"
+      >
+        Docs
+      </LinkButton>,
+    );
+
+    expect(
+      screen.getByRole("link", { name: "Open documentation (new tab)" }),
+    ).toBeTruthy();
   });
 
   it("forwards ref to the <a> DOM node", () => {

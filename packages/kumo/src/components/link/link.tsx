@@ -1,4 +1,10 @@
-import { forwardRef, useEffect, type SVGProps } from "react";
+import {
+  forwardRef,
+  isValidElement,
+  useEffect,
+  useId,
+  type SVGProps,
+} from "react";
 import { useRender } from "@base-ui/react/use-render";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { cn } from "../../utils/cn";
@@ -7,6 +13,10 @@ import {
   useLinkComponent,
   type LinkComponentProps,
 } from "../../utils/link-provider";
+import {
+  NewTabAnnouncement,
+  useNewTabAnnouncement,
+} from "./new-tab-announcement";
 
 /**
  * ExternalIcon - Visual indicator for links that open in a new tab/window.
@@ -115,7 +125,13 @@ export function linkVariants({
  */
 export type LinkProps = useRender.ComponentProps<"a"> &
   LinkComponentProps &
-  KumoLinkVariantsProps;
+  KumoLinkVariantsProps & {
+    /**
+     * Controls whether the accessible name warns that activation opens a new
+     * tab. Defaults to `true` when the effective target is `_blank`.
+     */
+    announceNewTab?: boolean;
+  };
 
 /**
  * Link component for consistent inline text links.
@@ -159,10 +175,31 @@ export type LinkProps = useRender.ComponentProps<"a"> &
  * ```
  */
 const LinkBase = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
-  { className, variant = "inline", render, ...props },
+  { announceNewTab, children, className, variant = "inline", render, ...props },
   ref,
 ) {
   const LinkComponent = useLinkComponent();
+  const newTabAnnouncement = useNewTabAnnouncement();
+  const newTabAnnouncementId = useId();
+  const renderTarget = isValidElement<{ target?: string }>(render)
+    ? render.props.target
+    : undefined;
+  const effectiveTarget = props.target ?? renderTarget;
+  const shouldAnnounceNewTab =
+    announceNewTab ?? effectiveTarget?.toLowerCase() === "_blank";
+  const hasAriaLabel = typeof props["aria-label"] === "string";
+  const hasAriaLabelledBy = typeof props["aria-labelledby"] === "string";
+  const accessibleProps = {
+    ...props,
+    ...(shouldAnnounceNewTab && hasAriaLabel
+      ? { "aria-label": `${props["aria-label"]}${newTabAnnouncement}` }
+      : {}),
+    ...(shouldAnnounceNewTab && !hasAriaLabel && hasAriaLabelledBy
+      ? {
+          "aria-labelledby": `${props["aria-labelledby"]} ${newTabAnnouncementId}`,
+        }
+      : {}),
+  };
 
   if (process.env.NODE_ENV !== "production") {
     // eslint-disable-next-line react-hooks/rules-of-hooks -- dev-only, conditional is stable
@@ -187,12 +224,22 @@ const LinkBase = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
       linkVariants({ variant }),
       "group/link inline-flex items-center gap-[0.1875em] has-[>[data-kumo-component=Badge]]:rounded-full",
     ),
+    children: (
+      <>
+        {children}
+        {shouldAnnounceNewTab && !hasAriaLabel ? (
+          <NewTabAnnouncement
+            id={hasAriaLabelledBy ? newTabAnnouncementId : undefined}
+          />
+        ) : null}
+      </>
+    ),
   } as useRender.ElementProps<"a">;
 
   const element = useRender({
     render: render ?? <LinkComponent />,
     ref,
-    props: mergeProps<"a">(defaultProps, props, { className }),
+    props: mergeProps<"a">(defaultProps, accessibleProps, { className }),
   });
 
   return element;

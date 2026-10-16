@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { Link, KUMO_LINK_VARIANTS, linkVariants } from "./link";
 import { Badge } from "../badge/badge";
 import { LinkProvider } from "../../utils/link-provider";
+import { KumoLocaleProvider } from "../../utils/locale-provider";
 
 describe("Link", () => {
   it("should be defined", () => {
@@ -150,9 +151,142 @@ describe("Link with href (standard usage)", () => {
         External
       </Link>,
     );
-    const anchor = screen.getByRole("link", { name: "External" });
+    const anchor = screen.getByRole("link", {
+      name: /^External\s*, opens in a new tab$/,
+    });
     expect(anchor.getAttribute("href")).toBe("https://example.com");
     expect(anchor.getAttribute("target")).toBe("_blank");
+  });
+
+  it("warns before a blank-target link opens a new tab", () => {
+    render(
+      <Link href="https://example.com" target="_blank">
+        Documentation
+      </Link>,
+    );
+
+    expect(
+      screen.getByRole("link", {
+        name: /^Documentation\s*, opens in a new tab$/,
+      }),
+    ).toBeTruthy();
+  });
+
+  it("uses the localized new-tab announcement", () => {
+    render(
+      <KumoLocaleProvider
+        translations={{
+          link: { opensInNewTab: ", se abre en una pestaña nueva" },
+        }}
+      >
+        <Link href="https://example.com" target="_blank">
+          Documentación
+        </Link>
+      </KumoLocaleProvider>,
+    );
+
+    expect(
+      screen.getByRole("link", {
+        name: /^Documentación\s*, se abre en una pestaña nueva$/,
+      }),
+    ).toBeTruthy();
+  });
+
+  it("allows an equivalent custom accessible name to suppress the suffix", () => {
+    render(
+      <Link
+        href="https://example.com"
+        target="_blank"
+        announceNewTab={false}
+        aria-label="Documentation (new tab)"
+      >
+        Documentation
+      </Link>,
+    );
+
+    expect(
+      screen.getByRole("link", { name: "Documentation (new tab)" }),
+    ).toBeTruthy();
+  });
+
+  it("can announce a new tab selected by a composed router", () => {
+    render(
+      <Link render={<a href="https://example.com" target="_blank" />}>
+        Documentation
+      </Link>,
+    );
+
+    expect(
+      screen.getByRole("link", {
+        name: /^Documentation\s*, opens in a new tab$/,
+      }),
+    ).toBeTruthy();
+  });
+
+  it("honors an explicit target over a composed target", () => {
+    render(
+      <Link
+        render={<a href="https://example.com" target="_blank" />}
+        target="_self"
+      >
+        Documentation
+      </Link>,
+    );
+
+    expect(screen.getByRole("link", { name: "Documentation" })).toBeTruthy();
+  });
+
+  it("appends the warning to an authored aria-label", () => {
+    render(
+      <Link
+        href="https://example.com"
+        target="_blank"
+        aria-label="Open documentation"
+      >
+        Docs
+      </Link>,
+    );
+
+    expect(
+      screen.getByRole("link", {
+        name: /^Open documentation\s*, opens in a new tab$/,
+      }),
+    ).toBeTruthy();
+  });
+
+  it("appends the warning to an authored aria-labelledby name", () => {
+    render(
+      <>
+        <span id="documentation-label">Open documentation</span>
+        <Link
+          href="https://example.com"
+          target="_blank"
+          aria-labelledby="documentation-label"
+        >
+          Docs
+        </Link>
+      </>,
+    );
+
+    expect(
+      screen.getByRole("link", {
+        name: /^Open documentation\s*, opens in a new tab$/,
+      }),
+    ).toBeTruthy();
+  });
+
+  it("recognizes browsing-context keywords case-insensitively", () => {
+    render(
+      <Link href="https://example.com" target="_BLANK">
+        Documentation
+      </Link>,
+    );
+
+    expect(
+      screen.getByRole("link", {
+        name: /^Documentation\s*, opens in a new tab$/,
+      }),
+    ).toBeTruthy();
   });
 
   it("passes href through to a custom LinkProvider component", () => {

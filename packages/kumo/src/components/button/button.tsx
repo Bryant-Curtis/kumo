@@ -534,13 +534,13 @@ export const LinkButton = React.forwardRef<HTMLAnchorElement, LinkButtonProps>(
     const hasAriaLabelledBy = typeof props["aria-labelledby"] === "string";
     const accessibleProps = {
       ...props,
-      ...(shouldAnnounceNewTab && hasAriaLabel
-        ? { "aria-label": `${props["aria-label"]}${newTabAnnouncement}` }
-        : {}),
-      ...(shouldAnnounceNewTab && !hasAriaLabel && hasAriaLabelledBy
+      ...(shouldAnnounceNewTab && hasAriaLabelledBy
         ? {
             "aria-labelledby": `${props["aria-labelledby"]} ${newTabAnnouncementId}`,
           }
+        : {}),
+      ...(shouldAnnounceNewTab && !hasAriaLabelledBy && hasAriaLabel
+        ? { "aria-label": `${props["aria-label"]}${newTabAnnouncement}` }
         : {}),
     };
 
@@ -582,7 +582,7 @@ export const LinkButton = React.forwardRef<HTMLAnchorElement, LinkButtonProps>(
         {...accessibleProps}
       >
         {renderButtonContent(variant, iconNode, children)}
-        {shouldAnnounceNewTab && !hasAriaLabel ? (
+        {shouldAnnounceNewTab && (!hasAriaLabel || hasAriaLabelledBy) ? (
           <NewTabAnnouncement
             id={hasAriaLabelledBy ? newTabAnnouncementId : undefined}
           />

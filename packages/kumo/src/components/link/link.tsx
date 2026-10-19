@@ -1,8 +1,10 @@
 import {
+  cloneElement,
   forwardRef,
   isValidElement,
   useEffect,
   useId,
+  type AnchorHTMLAttributes,
   type SVGProps,
 } from "react";
 import { useRender } from "@base-ui/react/use-render";
@@ -128,7 +130,8 @@ export type LinkProps = useRender.ComponentProps<"a"> &
   KumoLinkVariantsProps & {
     /**
      * Controls whether the accessible name warns that activation opens a new
-     * tab. Defaults to `true` when the effective target is `_blank`.
+     * tab. Defaults to `true` when the effective target is `_blank`. Set this
+     * explicitly when a `render` callback selects the target.
      */
     announceNewTab?: boolean;
   };
@@ -181,25 +184,59 @@ const LinkBase = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
   const LinkComponent = useLinkComponent();
   const newTabAnnouncement = useNewTabAnnouncement();
   const newTabAnnouncementId = useId();
-  const renderTarget = isValidElement<{ target?: string }>(render)
-    ? render.props.target
+  const renderElement = isValidElement<
+    AnchorHTMLAttributes<HTMLAnchorElement>
+  >(render)
+    ? render
     : undefined;
-  const effectiveTarget = props.target ?? renderTarget;
+  const renderProps = renderElement?.props;
+  const effectiveTarget = renderProps?.target ?? props.target;
   const shouldAnnounceNewTab =
     announceNewTab ?? effectiveTarget?.toLowerCase() === "_blank";
-  const hasAriaLabel = typeof props["aria-label"] === "string";
-  const hasAriaLabelledBy = typeof props["aria-labelledby"] === "string";
-  const accessibleProps = {
-    ...props,
-    ...(shouldAnnounceNewTab && hasAriaLabel
-      ? { "aria-label": `${props["aria-label"]}${newTabAnnouncement}` }
-      : {}),
-    ...(shouldAnnounceNewTab && !hasAriaLabel && hasAriaLabelledBy
+  const ariaLabel = renderProps?.["aria-label"] ?? props["aria-label"];
+  const ariaLabelledBy =
+    renderProps?.["aria-labelledby"] ?? props["aria-labelledby"];
+  const hasAriaLabel = typeof ariaLabel === "string";
+  const hasAriaLabelledBy = typeof ariaLabelledBy === "string";
+  const accessibleNameProps = {
+    ...(shouldAnnounceNewTab && hasAriaLabelledBy
       ? {
-          "aria-labelledby": `${props["aria-labelledby"]} ${newTabAnnouncementId}`,
+          "aria-labelledby": `${ariaLabelledBy} ${newTabAnnouncementId}`,
         }
       : {}),
+    ...(shouldAnnounceNewTab && !hasAriaLabelledBy && hasAriaLabel
+      ? { "aria-label": `${ariaLabel}${newTabAnnouncement}` }
+      : {}),
   };
+  const accessibleProps = {
+    ...props,
+    ...accessibleNameProps,
+  };
+  const needsHiddenAnnouncement =
+    shouldAnnounceNewTab && (!hasAriaLabel || hasAriaLabelledBy);
+  const renderHasChildren =
+    renderProps !== undefined &&
+    Object.prototype.hasOwnProperty.call(renderProps, "children");
+  const effectiveChildren = renderHasChildren ? renderProps.children : children;
+  const childrenWithAnnouncement = (
+    <>
+      {effectiveChildren}
+      {needsHiddenAnnouncement ? (
+        <NewTabAnnouncement
+          id={hasAriaLabelledBy ? newTabAnnouncementId : undefined}
+        />
+      ) : null}
+    </>
+  );
+  const accessibleRender =
+    renderElement && shouldAnnounceNewTab
+      ? cloneElement(renderElement, {
+          ...accessibleNameProps,
+          ...(needsHiddenAnnouncement
+            ? { children: childrenWithAnnouncement }
+            : {}),
+        })
+      : render;
 
   if (process.env.NODE_ENV !== "production") {
     // eslint-disable-next-line react-hooks/rules-of-hooks -- dev-only, conditional is stable
@@ -224,20 +261,11 @@ const LinkBase = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
       linkVariants({ variant }),
       "group/link inline-flex items-center gap-[0.1875em] has-[>[data-kumo-component=Badge]]:rounded-full",
     ),
-    children: (
-      <>
-        {children}
-        {shouldAnnounceNewTab && !hasAriaLabel ? (
-          <NewTabAnnouncement
-            id={hasAriaLabelledBy ? newTabAnnouncementId : undefined}
-          />
-        ) : null}
-      </>
-    ),
+    children: childrenWithAnnouncement,
   } as useRender.ElementProps<"a">;
 
   const element = useRender({
-    render: render ?? <LinkComponent />,
+    render: accessibleRender ?? <LinkComponent />,
     ref,
     props: mergeProps<"a">(defaultProps, accessibleProps, { className }),
   });

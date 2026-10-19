@@ -223,7 +223,7 @@ describe("Link with href (standard usage)", () => {
     ).toBeTruthy();
   });
 
-  it("honors an explicit target over a composed target", () => {
+  it("announces the composed target when it overrides the Link target", () => {
     render(
       <Link
         render={<a href="https://example.com" target="_blank" />}
@@ -233,7 +233,71 @@ describe("Link with href (standard usage)", () => {
       </Link>,
     );
 
-    expect(screen.getByRole("link", { name: "Documentation" })).toBeTruthy();
+    const link = screen.getByRole("link", {
+      name: /^Documentation\s*, opens in a new tab$/,
+    });
+    expect(link.getAttribute("target")).toBe("_blank");
+  });
+
+  it("appends the warning to an aria-label supplied by a composed link", () => {
+    render(
+      <Link
+        render={
+          <a
+            href="https://example.com"
+            target="_blank"
+            aria-label="Open composed documentation"
+          />
+        }
+      >
+        Docs
+      </Link>,
+    );
+
+    expect(
+      screen.getByRole("link", {
+        name: "Open composed documentation, opens in a new tab",
+      }),
+    ).toBeTruthy();
+  });
+
+  it("preserves composed children when appending the warning", () => {
+    render(
+      <Link
+        render={
+          <a href="https://example.com" target="_blank">
+            Composed documentation
+          </a>
+        }
+      >
+        Docs
+      </Link>,
+    );
+
+    expect(
+      screen.getByRole("link", {
+        name: "Composed documentation, opens in a new tab",
+      }),
+    ).toBeTruthy();
+  });
+
+  it("can announce a target selected by a render callback", () => {
+    render(
+      <Link
+        announceNewTab
+        render={(renderProps) => (
+          <a {...renderProps} href="https://example.com" target="_blank" />
+        )}
+      >
+        Callback documentation
+      </Link>,
+    );
+
+    expect(
+      screen.getByRole("link", {
+        name: /^Callback documentation\s*, opens in a new tab$/,
+      }),
+    ).toBeTruthy();
   });
 
   it("appends the warning to an authored aria-label", () => {
@@ -271,6 +335,28 @@ describe("Link with href (standard usage)", () => {
     expect(
       screen.getByRole("link", {
         name: /^Open documentation\s*, opens in a new tab$/,
+      }),
+    ).toBeTruthy();
+  });
+
+  it("appends the warning to aria-labelledby when both naming attributes exist", () => {
+    render(
+      <>
+        <span id="documentation-label">Open labelled documentation</span>
+        <Link
+          href="https://example.com"
+          target="_blank"
+          aria-label="Ignored label"
+          aria-labelledby="documentation-label"
+        >
+          Docs
+        </Link>
+      </>,
+    );
+
+    expect(
+      screen.getByRole("link", {
+        name: /^Open labelled documentation\s*, opens in a new tab$/,
       }),
     ).toBeTruthy();
   });

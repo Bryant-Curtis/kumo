@@ -313,6 +313,28 @@ describe("LinkButton", () => {
     ).toBeTruthy();
   });
 
+  it("appends the warning to aria-labelledby when both naming attributes exist", () => {
+    render(
+      <>
+        <span id="documentation-label">Open labelled documentation</span>
+        <LinkButton
+          href="https://example.com"
+          target="_blank"
+          aria-label="Ignored label"
+          aria-labelledby="documentation-label"
+        >
+          Docs
+        </LinkButton>
+      </>,
+    );
+
+    expect(
+      screen.getByRole("link", {
+        name: /^Open labelled documentation\s*, opens in a new tab$/,
+      }),
+    ).toBeTruthy();
+  });
+
   it("allows an equivalent custom accessible name to suppress the suffix", () => {
     render(
       <LinkButton

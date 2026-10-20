@@ -5,10 +5,7 @@ import { Tooltip } from "../tooltip/tooltip";
 import { cn } from "../../utils/cn";
 import { resolveVariant } from "../../utils/resolve-variant";
 import { useLinkComponent } from "../../utils/link-provider";
-import {
-  NewTabAnnouncement,
-  useNewTabAnnouncement,
-} from "../link/new-tab-announcement";
+import { useNewTabDescription } from "../../utils/new-tab-description";
 
 /** Button variant definitions mapping shape, size, and variant names to their Tailwind classes. */
 export const KUMO_BUTTON_VARIANTS = {
@@ -381,8 +378,8 @@ export type LinkButtonProps = React.AnchorHTMLAttributes<HTMLAnchorElement> &
     /** When `true`, opens in a new tab with `rel="noopener noreferrer"`. */
     external?: boolean;
     /**
-     * Controls whether the accessible name warns that activation opens a new
-     * tab. Defaults to `true` when the effective target is `_blank`.
+     * Controls whether an accessible description explains that activation
+     * opens a new tab. Defaults to `true` when the effective target is `_blank`.
      */
     announceNewTab?: boolean;
     linksExternal?: boolean;
@@ -521,8 +518,6 @@ export const LinkButton = React.forwardRef<HTMLAnchorElement, LinkButtonProps>(
     ref,
   ) => {
     const LinkComponent = useLinkComponent();
-    const newTabAnnouncement = useNewTabAnnouncement();
-    const newTabAnnouncementId = React.useId();
     const emphasisStyle = getEmphasisStyle(variant);
     const externalProps = external
       ? { target: "_blank", rel: "noopener noreferrer" }
@@ -530,18 +525,14 @@ export const LinkButton = React.forwardRef<HTMLAnchorElement, LinkButtonProps>(
     const effectiveTarget = props.target ?? externalProps.target;
     const shouldAnnounceNewTab =
       announceNewTab ?? effectiveTarget?.toLowerCase() === "_blank";
-    const hasAriaLabel = typeof props["aria-label"] === "string";
-    const hasAriaLabelledBy = typeof props["aria-labelledby"] === "string";
+    const { describedBy, description } = useNewTabDescription({
+      announce: shouldAnnounceNewTab,
+      ariaDescribedBy: props["aria-describedby"],
+      ariaDescription: props["aria-description"],
+    });
     const accessibleProps = {
       ...props,
-      ...(shouldAnnounceNewTab && hasAriaLabelledBy
-        ? {
-            "aria-labelledby": `${props["aria-labelledby"]} ${newTabAnnouncementId}`,
-          }
-        : {}),
-      ...(shouldAnnounceNewTab && !hasAriaLabelledBy && hasAriaLabel
-        ? { "aria-label": `${props["aria-label"]}${newTabAnnouncement}` }
-        : {}),
+      ...(shouldAnnounceNewTab ? { "aria-describedby": describedBy } : {}),
     };
 
     if (disabled) {
@@ -582,11 +573,7 @@ export const LinkButton = React.forwardRef<HTMLAnchorElement, LinkButtonProps>(
         {...accessibleProps}
       >
         {renderButtonContent(variant, iconNode, children)}
-        {shouldAnnounceNewTab && (!hasAriaLabel || hasAriaLabelledBy) ? (
-          <NewTabAnnouncement
-            id={hasAriaLabelledBy ? newTabAnnouncementId : undefined}
-          />
-        ) : null}
+        {description}
       </LinkComponent>
     );
 

@@ -47,10 +47,13 @@ export function LinkNewTabAnnouncementDemo() {
         href="https://developers.cloudflare.com"
         target="_blank"
         announceNewTab={false}
-        aria-label="Custom announcement (new tab)"
+        aria-describedby="custom-new-tab-description"
       >
-        Custom announcement <Link.ExternalIcon />
+        Custom description <Link.ExternalIcon />
       </Link>
+      <span id="custom-new-tab-description" hidden>
+        Opens in a separate tab
+      </span>
     </div>
   );
 }

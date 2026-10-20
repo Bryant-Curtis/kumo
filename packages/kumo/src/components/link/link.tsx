@@ -3,7 +3,6 @@ import {
   forwardRef,
   isValidElement,
   useEffect,
-  useId,
   type AnchorHTMLAttributes,
   type SVGProps,
 } from "react";
@@ -15,10 +14,7 @@ import {
   useLinkComponent,
   type LinkComponentProps,
 } from "../../utils/link-provider";
-import {
-  NewTabAnnouncement,
-  useNewTabAnnouncement,
-} from "./new-tab-announcement";
+import { useNewTabDescription } from "../../utils/new-tab-description";
 
 /**
  * ExternalIcon - Visual indicator for links that open in a new tab/window.
@@ -129,9 +125,9 @@ export type LinkProps = useRender.ComponentProps<"a"> &
   LinkComponentProps &
   KumoLinkVariantsProps & {
     /**
-     * Controls whether the accessible name warns that activation opens a new
-     * tab. Defaults to `true` when the effective target is `_blank`. Set this
-     * explicitly when a `render` callback selects the target.
+     * Controls whether an accessible description explains that activation
+     * opens a new tab. Defaults to `true` when the effective target is
+     * `_blank`. Set this explicitly when a custom renderer selects the target.
      */
     announceNewTab?: boolean;
   };
@@ -182,59 +178,44 @@ const LinkBase = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
   ref,
 ) {
   const LinkComponent = useLinkComponent();
-  const newTabAnnouncement = useNewTabAnnouncement();
-  const newTabAnnouncementId = useId();
-  const renderElement = isValidElement<
-    AnchorHTMLAttributes<HTMLAnchorElement>
-  >(render)
+  const renderElement = isValidElement<AnchorHTMLAttributes<HTMLAnchorElement>>(
+    render,
+  )
     ? render
     : undefined;
   const renderProps = renderElement?.props;
   const effectiveTarget = renderProps?.target ?? props.target;
   const shouldAnnounceNewTab =
     announceNewTab ?? effectiveTarget?.toLowerCase() === "_blank";
-  const ariaLabel = renderProps?.["aria-label"] ?? props["aria-label"];
-  const ariaLabelledBy =
-    renderProps?.["aria-labelledby"] ?? props["aria-labelledby"];
-  const hasAriaLabel = typeof ariaLabel === "string";
-  const hasAriaLabelledBy = typeof ariaLabelledBy === "string";
-  const accessibleNameProps = {
-    ...(shouldAnnounceNewTab && hasAriaLabelledBy
-      ? {
-          "aria-labelledby": `${ariaLabelledBy} ${newTabAnnouncementId}`,
-        }
-      : {}),
-    ...(shouldAnnounceNewTab && !hasAriaLabelledBy && hasAriaLabel
-      ? { "aria-label": `${ariaLabel}${newTabAnnouncement}` }
-      : {}),
-  };
+  const { describedBy, description } = useNewTabDescription({
+    announce: shouldAnnounceNewTab,
+    ariaDescribedBy:
+      renderProps?.["aria-describedby"] ?? props["aria-describedby"],
+    ariaDescription:
+      renderProps?.["aria-description"] ?? props["aria-description"],
+  });
+  const descriptionProps = shouldAnnounceNewTab
+    ? { "aria-describedby": describedBy }
+    : {};
   const accessibleProps = {
     ...props,
-    ...accessibleNameProps,
+    ...descriptionProps,
   };
-  const needsHiddenAnnouncement =
-    shouldAnnounceNewTab && (!hasAriaLabel || hasAriaLabelledBy);
   const renderHasChildren =
     renderProps !== undefined &&
     Object.prototype.hasOwnProperty.call(renderProps, "children");
   const effectiveChildren = renderHasChildren ? renderProps.children : children;
-  const childrenWithAnnouncement = (
+  const childrenWithDescription = (
     <>
       {effectiveChildren}
-      {needsHiddenAnnouncement ? (
-        <NewTabAnnouncement
-          id={hasAriaLabelledBy ? newTabAnnouncementId : undefined}
-        />
-      ) : null}
+      {description}
     </>
   );
   const accessibleRender =
     renderElement && shouldAnnounceNewTab
       ? cloneElement(renderElement, {
-          ...accessibleNameProps,
-          ...(needsHiddenAnnouncement
-            ? { children: childrenWithAnnouncement }
-            : {}),
+          ...descriptionProps,
+          children: childrenWithDescription,
         })
       : render;
 
@@ -261,7 +242,7 @@ const LinkBase = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
       linkVariants({ variant }),
       "group/link inline-flex items-center gap-[0.1875em] has-[>[data-kumo-component=Badge]]:rounded-full",
     ),
-    children: childrenWithAnnouncement,
+    children: childrenWithDescription,
   } as useRender.ElementProps<"a">;
 
   const element = useRender({

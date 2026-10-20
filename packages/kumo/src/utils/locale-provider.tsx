@@ -24,7 +24,7 @@ type ResolvedKumoTranslations = {
 
 const defaultTranslations: ResolvedKumoTranslations = {
   link: {
-    opensInNewTab: ", opens in a new tab",
+    opensInNewTab: "Opens in a new tab",
   },
   label: {
     optional: "(optional)",

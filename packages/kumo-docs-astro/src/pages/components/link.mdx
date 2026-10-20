@@ -337,7 +337,12 @@ export default function Example() {
 </p>
 
 ```tsx
-import { useNewTabAnnouncement, type LinkComponentProps } from "@cloudflare/kumo";
+import { forwardRef } from "react";
+import { Link as RouterLink } from "react-router-dom";
+import {
+  useNewTabAnnouncement,
+  type LinkComponentProps,
+} from "@cloudflare/kumo";
 
 const AppLink = forwardRef<HTMLAnchorElement, LinkComponentProps>(
   ({ href, children, ...rest }, ref) => {

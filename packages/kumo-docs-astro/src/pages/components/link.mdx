@@ -315,15 +315,50 @@ export default function Example() {
 ### Link.ExternalIcon
 
 <p>
-  SVG icon component to indicate external links. Accepts all SVG element
-  attributes.
+  Icon that indicates a link opens in a new tab. It also renders visually
+  hidden text, localized through `KumoLocaleProvider` (`link.opensInNewTab`),
+  so screen-reader users get the same warning. Pass `label` to override the
+  text. Accepts all SVG element attributes.
 </p>
 
 ```tsx
 <Link href="https://example.com" target="_blank" rel="noopener noreferrer">
   External Site <Link.ExternalIcon />
 </Link>
+// Accessible name: "External Site (opens in a new tab)"
 ```
+
+### useNewTabAnnouncement
+
+<p>
+  Returns the localized "opens in a new tab" string for links that don't use
+  `Link.ExternalIcon`. To announce new tabs app-wide, use it in your
+  `LinkProvider` component:
+</p>
+
+```tsx
+import { useNewTabAnnouncement, type LinkComponentProps } from "@cloudflare/kumo";
+
+const AppLink = forwardRef<HTMLAnchorElement, LinkComponentProps>(
+  ({ href, children, ...rest }, ref) => {
+    const opensInNewTab = useNewTabAnnouncement();
+    return (
+      <RouterLink ref={ref} to={href ?? ""} {...rest}>
+        {children}
+        {rest.target === "_blank" && (
+          <span className="sr-only"> {opensInNewTab}</span>
+        )}
+      </RouterLink>
+    );
+  },
+);
+```
+
+<p>
+  If your `LinkProvider` component announces new tabs, don't also use
+  `Link.ExternalIcon` or `LinkButton external` on the same links, or the
+  announcement will be read twice.
+</p>
 
 </ComponentSection>
 

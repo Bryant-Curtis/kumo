@@ -212,6 +212,8 @@ export {
   linkVariants,
   KUMO_LINK_VARIANTS,
   KUMO_LINK_DEFAULT_VARIANTS,
+  useNewTabAnnouncement,
+  type LinkExternalIconProps,
   type LinkProps,
   type KumoLinkVariant,
   type KumoLinkVariantsProps,

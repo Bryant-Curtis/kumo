@@ -5,7 +5,7 @@ import { Tooltip } from "../tooltip/tooltip";
 import { cn } from "../../utils/cn";
 import { resolveVariant } from "../../utils/resolve-variant";
 import { useLinkComponent } from "../../utils/link-provider";
-import { useNewTabAnnouncement } from "../link/link";
+import { useKumoLocale } from "../../utils/locale-provider";
 
 /** Button variant definitions mapping shape, size, and variant names to their Tailwind classes. */
 export const KUMO_BUTTON_VARIANTS = {
@@ -512,7 +512,7 @@ export const LinkButton = React.forwardRef<HTMLAnchorElement, LinkButtonProps>(
     ref,
   ) => {
     const LinkComponent = useLinkComponent();
-    const newTabAnnouncement = useNewTabAnnouncement();
+    const { link: linkCopy } = useKumoLocale();
     const emphasisStyle = getEmphasisStyle(variant);
     const externalProps = external
       ? { target: "_blank", rel: "noopener noreferrer" }
@@ -558,7 +558,7 @@ export const LinkButton = React.forwardRef<HTMLAnchorElement, LinkButtonProps>(
       >
         {renderButtonContent(variant, iconNode, children)}
         {announcesNewTab ? (
-          <span className="sr-only"> {newTabAnnouncement}</span>
+          <span className="sr-only"> {linkCopy.opensInNewTab}</span>
         ) : null}
       </LinkComponent>
     );

@@ -1,17 +1,9 @@
 import { describe, it, expect, vi, afterEach } from "vite-plus/test";
 import { createElement, forwardRef } from "react";
 import { render, screen } from "@testing-library/react";
-import {
-  Link,
-  KUMO_LINK_VARIANTS,
-  linkVariants,
-  useNewTabAnnouncement,
-} from "./link";
+import { Link, KUMO_LINK_VARIANTS, linkVariants } from "./link";
 import { Badge } from "../badge/badge";
-import {
-  LinkProvider,
-  type LinkComponentProps,
-} from "../../utils/link-provider";
+import { LinkProvider } from "../../utils/link-provider";
 import { KumoLocaleProvider } from "../../utils/locale-provider";
 
 describe("Link", () => {
@@ -445,37 +437,5 @@ describe("Link.ExternalIcon new-tab announcement", () => {
     expect(
       screen.getByRole("link", { name: "Docs (external site)" }),
     ).toBeTruthy();
-  });
-});
-
-describe("useNewTabAnnouncement", () => {
-  it("lets a LinkProvider component announce new tabs app-wide", () => {
-    const AppLink = forwardRef<HTMLAnchorElement, LinkComponentProps>(
-      function AppLink({ children, to: _to, ...props }, ref) {
-        const opensInNewTab = useNewTabAnnouncement();
-        return (
-          <a ref={ref} {...props}>
-            {children}
-            {props.target === "_blank" ? (
-              <span className="sr-only"> {opensInNewTab}</span>
-            ) : null}
-          </a>
-        );
-      },
-    );
-
-    render(
-      <LinkProvider component={AppLink}>
-        <Link href="https://example.com" target="_blank">
-          Docs
-        </Link>
-        <Link href="/home">Home</Link>
-      </LinkProvider>,
-    );
-
-    expect(
-      screen.getByRole("link", { name: "Docs (opens in a new tab)" }),
-    ).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Home" })).toBeTruthy();
   });
 });

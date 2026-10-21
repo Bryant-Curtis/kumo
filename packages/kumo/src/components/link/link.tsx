@@ -230,8 +230,8 @@ const LinkBase = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
     ref,
     props: mergeProps<"a">(defaultProps, props, {
       className,
-      target: resolvedTarget,
-      rel: resolvedRel,
+      ...(resolvedTarget !== undefined ? { target: resolvedTarget } : {}),
+      ...(resolvedRel !== undefined ? { rel: resolvedRel } : {}),
       children: opensInNewTab ? (
         <>
           <span className="contents">{props.children}</span>

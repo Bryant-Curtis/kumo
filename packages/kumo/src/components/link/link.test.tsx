@@ -707,6 +707,84 @@ describe("Link external", () => {
   });
 });
 
+describe("Link with provider navigation defaults", () => {
+  // Stratus's AppLink applies external-navigation defaults before spreading
+  // incoming anchor props, so absent props must stay absent to preserve them.
+  const DefaultingLink = forwardRef<
+    HTMLAnchorElement,
+    React.AnchorHTMLAttributes<HTMLAnchorElement>
+  >((props, ref) => (
+    // oxlint-disable-next-line anchor-has-content, control-has-associated-label
+    <a target="_blank" rel="noreferrer" {...props} ref={ref} />
+  ));
+  DefaultingLink.displayName = "DefaultingLink";
+
+  it.each([
+    { name: "omitted", props: {} },
+    { name: "undefined", props: { target: undefined, rel: undefined } },
+    { name: "external false", props: { external: false } },
+  ])(
+    "preserves provider navigation defaults when props are $name",
+    ({ props }) => {
+      render(
+        <LinkProvider component={DefaultingLink}>
+          <Link href="https://example.com" {...props}>
+            Docs
+          </Link>
+        </LinkProvider>,
+      );
+      const link = screen.getByRole("link", { name: "Docs" });
+      expect(link.getAttribute("target")).toBe("_blank");
+      expect(link.getAttribute("rel")).toBe("noreferrer");
+      expect(link.querySelector(".sr-only")).toBeNull();
+      expect(link.querySelector(".link-external-icon")).toBeNull();
+    },
+  );
+
+  it("honors an explicit target without erasing the provider's rel default", () => {
+    render(
+      <LinkProvider component={DefaultingLink}>
+        <Link href="https://example.com" target="_self">
+          Docs
+        </Link>
+      </LinkProvider>,
+    );
+    const link = screen.getByRole("link", { name: "Docs" });
+    expect(link.getAttribute("target")).toBe("_self");
+    expect(link.getAttribute("rel")).toBe("noreferrer");
+  });
+
+  it("honors an explicit rel without erasing the provider's target default", () => {
+    render(
+      <LinkProvider component={DefaultingLink}>
+        <Link href="https://example.com" rel="noopener nofollow">
+          Docs
+        </Link>
+      </LinkProvider>,
+    );
+    const link = screen.getByRole("link", { name: "Docs" });
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noopener nofollow");
+  });
+
+  it("passes explicit external behavior and its warning through the provider", () => {
+    render(
+      <LinkProvider component={DefaultingLink}>
+        <Link href="https://example.com" external>
+          Docs
+        </Link>
+      </LinkProvider>,
+    );
+    const link = screen.getByRole("link", {
+      name: "Docs (opens in a new tab)",
+    });
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(link.querySelectorAll(".sr-only")).toHaveLength(1);
+    expect(link.querySelectorAll(".link-external-icon")).toHaveLength(1);
+  });
+});
+
 describe("Link.ExternalIcon icon-only naming", () => {
   it("keeps a title-bearing icon link identifiable through an explicit aria-label", () => {
     render(

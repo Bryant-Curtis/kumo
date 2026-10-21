@@ -171,6 +171,12 @@ export function App() {
   rules still apply; Kumo does not inspect a render element's props or infer
   the final DOM's target or accessible name.
 </p>
+<p>
+  When `target` or `rel` is unspecified, Link leaves it out so your provider can
+  supply its own navigation defaults. If the provider independently chooses to
+  open a new tab, Link does not automatically add an indicator or warning. Use
+  `external` or the manual `Link.ExternalIcon` pattern to opt into those cues.
+</p>
 
 ```tsx
 import { Link } from "@cloudflare/kumo";

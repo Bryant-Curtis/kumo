@@ -27,6 +27,9 @@ type LinkExternalIconProps = SVGProps<SVGSVGElement> & {
  *   Visit Example <Link.ExternalIcon />
  * </Link>
  * ```
+ * Icon-only links must provide `aria-label` or `aria-labelledby` instead of
+ * relying on `title`. Explicit names take precedence over the hidden warning;
+ * include the warning in that name when appropriate.
  */
 const ExternalIcon = ({ label, ...props }: LinkExternalIconProps) => {
   const { link } = useKumoLocale();
@@ -120,8 +123,8 @@ export function linkVariants({
  *
  * @example External link
  * ```tsx
- * <Link href="https://cloudflare.com" target="_blank" rel="noopener noreferrer">
- *   Visit Cloudflare <Link.ExternalIcon />
+ * <Link href="https://cloudflare.com" external>
+ *   Visit Cloudflare
  * </Link>
  * ```
  *
@@ -132,7 +135,19 @@ export function linkVariants({
  */
 export type LinkProps = useRender.ComponentProps<"a"> &
   LinkComponentProps &
-  KumoLinkVariantsProps;
+  KumoLinkVariantsProps & {
+    /**
+     * Opens in a new tab with `rel="noopener noreferrer"` and adds
+     * `Link.ExternalIcon`, including its localized visually hidden warning.
+     * Explicit `target` and `rel` props override the defaults. A same-tab
+     * target suppresses the icon and warning.
+     *
+     * Icon-only links need an explicit `aria-label` or `aria-labelledby`;
+     * do not rely on `title` as their accessible name. Explicit names are
+     * preserved, so include the new-tab warning in that name when needed.
+     */
+    external?: boolean;
+  };
 
 /**
  * Link component for consistent inline text links.
@@ -151,8 +166,8 @@ export type LinkProps = useRender.ComponentProps<"a"> &
  *
  * @example External link with icon
  * ```tsx
- * <Link href="https://cloudflare.com" target="_blank" rel="noopener noreferrer">
- *   Visit Cloudflare <Link.ExternalIcon />
+ * <Link href="https://cloudflare.com" external>
+ *   Visit Cloudflare
  * </Link>
  * ```
  *
@@ -176,10 +191,13 @@ export type LinkProps = useRender.ComponentProps<"a"> &
  * ```
  */
 const LinkBase = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
-  { className, variant = "inline", render, ...props },
+  { className, variant = "inline", render, external, target, rel, ...props },
   ref,
 ) {
   const LinkComponent = useLinkComponent();
+  const resolvedTarget = target ?? (external ? "_blank" : undefined);
+  const resolvedRel = rel ?? (external ? "noopener noreferrer" : undefined);
+  const opensInNewTab = external && resolvedTarget?.toLowerCase() === "_blank";
 
   if (process.env.NODE_ENV !== "production") {
     // eslint-disable-next-line react-hooks/rules-of-hooks -- dev-only, conditional is stable
@@ -203,13 +221,26 @@ const LinkBase = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
     className: cn(
       linkVariants({ variant }),
       "group/link inline-flex items-center gap-[0.1875em] has-[>[data-kumo-component=Badge]]:rounded-full",
+      opensInNewTab && "has-[>span>[data-kumo-component=Badge]]:rounded-full",
     ),
   } as useRender.ElementProps<"a">;
 
   const element = useRender({
     render: render ?? <LinkComponent />,
     ref,
-    props: mergeProps<"a">(defaultProps, props, { className }),
+    props: mergeProps<"a">(defaultProps, props, {
+      className,
+      target: resolvedTarget,
+      rel: resolvedRel,
+      children: opensInNewTab ? (
+        <>
+          <span className="contents">{props.children}</span>
+          <ExternalIcon />
+        </>
+      ) : (
+        props.children
+      ),
+    }),
   });
 
   return element;
